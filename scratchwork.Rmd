@@ -1,6 +1,6 @@
 ---
-title: "STAT370 (Theoretical Statistics) Individual Homework 7"
-author: "Oliver Baldwin Edwards"
+title: "STAT225"
+author: "Oliver Baldwin Edwards, Leah Johnson, Adi Arifovic"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: 
   pdf_document:
@@ -31,18 +31,19 @@ knitr::opts_chunk$set(
 
 https://bookdown.org/yihui/rmarkdown-cookbook/kableextra.html
 
+one of the following tests / corresponding CI 
 
-for drop in dipsersion full model vs model with only weight:
+ADI
+binomial test
+fisher's sign test
+wilcoxon signed rank test
+permutation/randomization test
+kendalls tau or spearman's correlation test ADI
 
+at least one of the following
 
-Hypothesis:
-Let βq be the rank-based slope coefficients of the predictors that are not included in the reduced model. In this case, the predictors (q = 9) being dropped are: cyl, disp, hp, drat, qsec, vs, am, gear, and carb.
-H0 :βq =0,orβ1 =β2 =...=βq =0
-H0 : at least one of the β1, β2, ..., βq are not equal to zero Assumptions:
-Independence - satisfied assuming that the specifications of one car is independent from that of another car.
-Linearity - assume to be satisfied.
-
-
-The test statistic, HM, is 2.1064 on 9 and 21 degrees of freedom, and its associated p-value is 0.0768
-
-Conclusion: Since the p-value > alpha level (set at 0.05), we fail to reject the null reduced model in favor of the larger full model. In the presence of weight already in the model, none of the other predictors are significant predictors of mpg. In other words, the reduced model accounts for about the same amount of variability in the response as the full model.
+kolmogorov smirnov test (with empirical CDF(s) plotted) LEAH
+kernel density estimation (not smoothing related) LEAH
+OLS multiple linear regression (for comparison purposes) OLIVER
+JHM multiple regression OLIVER
+generalized additive model (which will require you attempting a variety of smoothers) ADI
