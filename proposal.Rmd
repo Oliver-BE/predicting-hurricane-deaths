@@ -1,0 +1,147 @@
+---
+title: "Group 2: STAT225 Final Project Proposal"
+author: "Oliver Baldwin Edwards, Leah Johnson, Adi Arifovic"
+date: "Monday, April 20, 2020"
+output: 
+  pdf_document:
+    fig_height: 3.8
+    fig_width: 5
+    number_section: false 
+  html_document:
+    fig_height: 3
+    fig_width: 5
+  word_document:
+    fig_height: 3
+    fig_width: 5
+---
+
+```{r, setup, include=FALSE}
+library(mdsr)   
+library(ggplot2)
+library(mosaic)
+library(knitr)
+library(tidyverse)
+library(dplyr)
+library(GGally)
+library(DAAG)
+# Load additional packages here 
+knitr::opts_chunk$set(
+  tidy=FALSE,     # display code as typed
+  size="small")   # slightly smaller font for code
+```
+
+
+## 1) Group
+
+Group 2
+
+## 2) Members
+
+Oliver Baldwin Edwards, Leah Johnson, Adi Arifovic 
+
+## 3) Title
+
+Predicting Hurricane Deaths
+
+## 4) Purpose
+
+We hope to predict the number of hurricane deaths based on variables such as maximum sustained windspeed, atmospheric pressure, and property damage from a dataset containing data on 94 named hurricanes that made landfall in the US mainland from 1950 through 2012. We would expect the number of deaths to increase as the maximum sustained windspeed and property damage increases, since it would make sense for more destructive hurricanes to also be more deadly.
+
+## 5) Data
+
+We plan to use the dataset "hurricNamed" from the "DAAG" R package containing data on 94 named hurricanes that made landfall in the US mainland from 1950 through 2012. It contains information on the number of deaths, the name of the hurricane, the year of the hurricane, the damage caused by the hurricane, etc. The data is sourced from multiple places and was used in a research paper claiming that hurricanes with female names did more human damage (after adjusting for the severity of the storm) than those with male names. Therefore, the data seems fairly reliable.
+
+Potential shortcomings of the dataset include limited data on weather-related variables for each hurricane, as it only contains maximum sustained windspeed, atmospheric pressure at landfall, and number of landfalls. Additionally, the "NDAM2014" column contains data on hurricane damage had the hurricane appeared in 2014 and it is unclear how these estimates were calculated (also no units are given on these observations). 
+
+```{r}
+# load in full dataset
+full_hurricane_df <- hurricNamed
+glimpse(full_hurricane_df)
+```
+
+
+## 6) Population 
+
+Each observational unit contains data on one named hurricane that made landfall in the US between 1950 and 2012. Since we are trying to predict the number of deaths that occur from a hurricane based on this data, our predictions would generalize to hurricanes that occurred outside of the time range from 1950 to 2012 in the US (noting that we might not be able to generalize across different time periods). 
+
+## 7) Response Variable(s)
+
+Our response variable is the number of deaths that occurred due to a hurricane. The units are number of human deaths. We observe that the range of deaths are from 0 to 1836. 
+
+## 8) Explanatory Variables
+
+We will examine LF.WindsMPH, LF.PressureMB, LF.times, BaseDam2014, NDAM2014, and deaths.
+
+\begin{enumerate}
+\item LF.WindsMPH describes the maximum sustained windspeed for each hurricane in miles per hour
+\item LF.PressureMB describes the atmospheric pressure at landfall in millibars
+\item LF.times describes the number of times the hurricane made landfall 
+\item BaseDam2014 describes the property damage caused by the hurricane in millions of 2014 US dollars
+\item NDAM2014 describes the amount of damage the hurricane caused had it appeared in 2014 (no units given)
+\item deaths describes the number of human deaths the hurricane caused
+\end{enumerate}
+
+
+## 9) Exploratory Analysis
+
+The below ggpairs is for the full, unaltered dataset:
+
+```{r}
+# remove non numeric and BaseDamage for ggpairs call
+hurricane_pairs <- full_hurricane_df %>% 
+  select(-c(Name, AffectedStates, firstLF, mf, BaseDamage, Year))
+
+ggpairs(hurricane_pairs)
+```
+
+A model predicting deaths by pressure and windspeed from the unaltered dataset:
+
+```{r}
+# predicting deaths by pressure and windspeed with unadjusted death column
+msummary(lm(deaths ~ LF.PressureMB + LF.WindsMPH, data = hurricane_pairs))
+```
+
+Now we run a ggpairs call removing the one death outlier:
+
+```{r}
+# try removing death outlier
+remove_outlier <- hurricane_pairs %>% 
+  filter(deaths != 1836)
+
+ggpairs(remove_outlier)
+```
+
+And run a model using the dataset with the removed death outlier:
+
+```{r}
+# predicting deaths by pressure and windspeed with removed death outlier
+msummary(lm(deaths ~ LF.PressureMB + LF.WindsMPH, data = remove_outlier))
+```
+
+Lastly we apply a log scale to the deaths column and run a ggpairs call:
+
+```{r}
+# try applying a log transformation to deaths
+hurricane_logdeaths <- hurricane_pairs %>% 
+  mutate(log_deaths = ifelse(deaths == 0, 0, log(deaths))) %>% 
+  select(-deaths)
+
+ggpairs(hurricane_logdeaths)
+```
+
+And start examining a few different models using this dataset with log(deaths):
+
+```{r}
+# different models to predict log deaths
+pressure_windspeed <- msummary(lm(log_deaths ~ LF.PressureMB + LF.WindsMPH, 
+                                  data = hurricane_logdeaths)) ;pressure_windspeed
+
+pressure_ndam <- msummary(lm(log_deaths ~ LF.PressureMB + NDAM2014, 
+                                  data = hurricane_logdeaths)) ;pressure_ndam
+
+pressure_basedam <- msummary(lm(log_deaths ~ LF.PressureMB + BaseDam2014, 
+                                  data = hurricane_logdeaths)) ;pressure_basedam
+```
+
+We see at least a couple of interesting relationships between deaths / log(deaths) and predictor variables from the above ggpairs calls and models. 
+
