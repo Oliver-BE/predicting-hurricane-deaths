@@ -24,6 +24,7 @@ library(dplyr)
 library(GGally)
 library(kableExtra)
 library(DAAG)
+library(Rfit)
 # Load additional packages here 
 knitr::opts_chunk$set(
   tidy=FALSE,     # display code as typed
@@ -125,10 +126,35 @@ pressure_ndam <- msummary(lm(log_deaths ~ LF.PressureMB + NDAM2014,
 
 pressure_basedam <- msummary(lm(log_deaths ~ LF.PressureMB + BaseDam2014, 
                                   data = hurricane_logdeaths)) ;pressure_basedam
+
+wind_basedam <- msummary(lm(log_deaths ~ LF.WindsMPH + BaseDam2014, 
+                            data = hurricane_logdeaths)) ;wind_basedam
+
+wind_ndam <- msummary(lm(log_deaths ~ LF.WindsMPH + NDAM2014, 
+                            data = hurricane_logdeaths)) ;wind_ndam
+
 ```
 
 ## JHM Multiple Regression
-rfit
+
+```{r}
+# different models to predict log deaths using rfit
+pressure_windspeed <- msummary(rfit(log_deaths ~ LF.PressureMB + LF.WindsMPH, 
+                                  data = hurricane_logdeaths)) ;pressure_windspeed
+
+pressure_ndam <- msummary(rfit(log_deaths ~ LF.PressureMB + NDAM2014, 
+                                  data = hurricane_logdeaths)) ;pressure_ndam
+
+pressure_basedam <- msummary(rfit(log_deaths ~ LF.PressureMB + BaseDam2014, 
+                                  data = hurricane_logdeaths)) ;pressure_basedam
+
+wind_basedam <- msummary(rfit(log_deaths ~ LF.WindsMPH + BaseDam2014, 
+                            data = hurricane_logdeaths)) ;wind_basedam
+
+wind_ndam <- msummary(rfit(log_deaths ~ LF.WindsMPH + NDAM2014, 
+                            data = hurricane_logdeaths)) ;wind_ndam
+```
+
 JHM multiple regression OLIVER
 
 ## Generalized Additive Model
