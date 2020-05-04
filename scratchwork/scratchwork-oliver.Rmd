@@ -25,6 +25,8 @@ library(GGally)
 library(kableExtra)
 library(DAAG)
 library(Rfit)
+library(leaps)
+library(gam)
 # Load additional packages here 
 knitr::opts_chunk$set(
   tidy=FALSE,     # display code as typed
@@ -107,6 +109,20 @@ wilcoxon signed rank test
 permutation/randomization test
 kendalls tau or spearman's correlation test ADI
 
+Put a sentence explaining that we want kendalls over spearmans since more robust
+setup hypothesis test for posstivie association $\tau >0$
+```{r}
+# associated
+cor.test(x=hurricane_logdeaths$NDAM2014, y=hurricane_logdeaths$log_deaths, method="kendall")
+
+cor.test(x=hurricane_logdeaths$LF.times, y=hurricane_logdeaths$log_deaths, method="kendall")
+
+cor.test(x=hurricane_logdeaths$LF.PressureMB, y=hurricane_logdeaths$log_deaths, method="kendall")
+
+
+cor(x=hurricane_logdeaths$NDAM2014, y=hurricane_logdeaths$log_deaths, method="kendall")
+```
+low pvalue so reject the null, therefore they are positively associated
 
 ## Kolmogorov Smirnov Test
 kolmogorov smirnov test (with empirical CDF(s) plotted) LEAH
@@ -134,8 +150,49 @@ wind_ndam <- msummary(lm(log_deaths ~ LF.WindsMPH + NDAM2014,
                             data = hurricane_logdeaths)) ;wind_ndam
 
 ```
+regsubsets
+```{r}
+test <- regsubsets(log_deaths ~ ., data=hurricane_logdeaths, nbest=3)
+summary(test)
+
+best_1pred <-  msummary(lm(log_deaths ~  NDAM2014, 
+                            data = hurricane_logdeaths)) ;best_1pred
+
+best_2pred <-  lm(log_deaths ~  NDAM2014 + LF.PressureMB, 
+                            data = hurricane_logdeaths) ;best_2pred
+
+best_3pred <-  lm(log_deaths ~  NDAM2014 + LF.PressureMB + LF.WindsMPH,
+                            data = hurricane_logdeaths) ;best_3pred
+
+# so stick with 2 predictor model
+anova(best_2pred, best_3pred)
+
+best_4pred <-  msummary(lm(log_deaths ~  NDAM2014 + LF.PressureMB + LF.WindsMPH
+                           + BaseDam2014, data = hurricane_logdeaths)) ;best_4pred
+
+full_model <- msummary(lm(log_deaths ~  NDAM2014 + LF.PressureMB + LF.WindsMPH
+                           + BaseDam2014 + LF.times,
+                          data = hurricane_logdeaths)) ;full_model
+```
 
 ## JHM Multiple Regression
+
+```{r}
+best_2pred_rank <-  rfit(log_deaths ~  NDAM2014 + LF.PressureMB, 
+                            data = hurricane_logdeaths) ;msummary(best_2pred_rank)
+
+other_2pred_rank <-  rfit(log_deaths ~  BaseDam2014 + LF.PressureMB, 
+                            data = hurricane_logdeaths) ;msummary(other_2pred_rank)
+
+best_3pred_rank <-  rfit(log_deaths ~  NDAM2014 + LF.PressureMB + LF.WindsMPH,
+                            data = hurricane_logdeaths) ;msummary(best_3pred_rank)
+
+# so again, we drop wind speed as a predictor
+drop.test(best_3pred_rank, best_2pred_rank)
+```
+
+NDAM2014 + LF.PressureMB
+
 
 ```{r}
 # different models to predict log deaths using rfit
@@ -159,6 +216,16 @@ JHM multiple regression OLIVER
 
 ## Generalized Additive Model
 generalized additive model (which will require you attempting a variety of smoothers) ADI
+
+```{r, warning=FALSE}
+ndam_permutations <- c("1", "NDAM2014", "bs(NDAM2014)", "s(NDAM2014)")
+pressure_permutations <- c("1", "LF.PressureMB", "bs(LF.PressureMB)", "s(LF.PressureMB)")
+combined <- list(ndam_permutations, pressure_permutations)
+two_pred_gam <- gam(log_deaths ~ NDAM2014 + LF.PressureMB, data=hurricane_logdeaths)
+
+step.Gam(two_pred_gam, scope=combined)
+```
+
 
 ## Results
 table of aggregated results and discussion of findings
