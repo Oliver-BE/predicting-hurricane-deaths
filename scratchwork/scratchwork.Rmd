@@ -49,7 +49,7 @@ We plan to use the dataset "hurricNamed" from the "DAAG" R package containing da
 
 ### Response Variables 
 
-Our response variable is the number of deaths that occurred due to a hurricane. The units are number of human deaths. We observe that the range of deaths are from 0 to 1836. 
+Our response variable is the number of log_deaths that occurred due to a hurricane. The units are number of human deaths. We observe that the range of deaths are from 0 to 1836. 
 
 ### Explanatory Variables
 
@@ -80,6 +80,7 @@ hurricane_death_outlier <- hurricane_numeric %>%
 # applying a log transformation to deaths
 hurricane_logdeaths <- hurricane_numeric %>% 
   mutate(log_deaths = ifelse(deaths == 0, 0, log(deaths))) %>% 
+  mutate(NDAM2014 = log(NDAM2014)) %>% 
   select(-deaths)
 ```
 
@@ -323,15 +324,16 @@ Looking at our `ggpairs` call from earlier, we see that the variables can be sor
 m0 <- gam(log_deaths ~ NDAM2014, data = hurricane_logdeaths) # NDAM2014 linear
 
 # bsplines with varying df
-m1 <- gam(log_deaths ~ bs(NDAM2014, df = 3), data = hurricane_logdeaths)
-m2 <- gam(log_deaths ~ bs(NDAM2014, df = 4), data = hurricane_logdeaths)
-m3 <- gam(log_deaths ~ bs(NDAM2014, df = 5), data = hurricane_logdeaths)
-m4 <- gam(log_deaths ~ bs(NDAM2014, df = 6), data = hurricane_logdeaths)
-m5 <- gam(log_deaths ~ bs(NDAM2014, df = 7), data = hurricane_logdeaths)
-m6 <- gam(log_deaths ~ bs(NDAM2014, df = 8), data = hurricane_logdeaths)
+#best
+m1 <- gam(log_deaths ~ bs(NDAM2014), data = hurricane_logdeaths)
+m2 <- gam(log_deaths ~ bs(NDAM2014, df = 2), data = hurricane_logdeaths)
+m3 <- gam(log_deaths ~ bs(NDAM2014, df = 3), data = hurricane_logdeaths)
+m4 <- gam(log_deaths ~ bs(NDAM2014, df = 4), data = hurricane_logdeaths)
+m5 <- gam(log_deaths ~ bs(NDAM2014, df = 5), data = hurricane_logdeaths)
+m6 <- gam(log_deaths ~ bs(NDAM2014, df = 6), data = hurricane_logdeaths)
 
 # smoothing splines with varying df arguments (smoothing parameter)
-m7 <- gam(log_deaths ~ s(NDAM2014, df = 3), data = hurricane_logdeaths)
+m7 <- gam(log_deaths ~ s(NDAM2014), data = hurricane_logdeaths)
 m8 <- gam(log_deaths ~ s(NDAM2014, df = 4), data = hurricane_logdeaths)
 m9 <- gam(log_deaths ~ s(NDAM2014, df = 5), data = hurricane_logdeaths)
 m10 <- gam(log_deaths ~ s(NDAM2014, df = 6), data = hurricane_logdeaths)
@@ -348,37 +350,38 @@ AIC(m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12)
 ```{r, warning = FALSE}
 
 # LF.PressureMB absent
-m0 <- gam(log_deaths ~ s(NDAM2014, df = 7), data = hurricane_logdeaths)
+m0 <- gam(log_deaths ~ bs(NDAM2014), data = hurricane_logdeaths)
 
-m1 <- gam(log_deaths ~ s(NDAM2014, df = 7) + LF.PressureMB, 
+m1 <- gam(log_deaths ~ bs(NDAM2014) + LF.PressureMB, 
           data = hurricane_logdeaths) # LF.PressureMB linearly included
 
 # bsplines with varying df
-m2 <- gam(log_deaths ~ s(NDAM2014, df = 7) + bs(LF.PressureMB, df = 3), 
+m2 <- gam(log_deaths ~ bs(NDAM2014) + bs(LF.PressureMB), 
           data = hurricane_logdeaths)
-m3 <- gam(log_deaths ~ s(NDAM2014, df = 7) + bs(LF.PressureMB, df = 4), 
+m3 <- gam(log_deaths ~ bs(NDAM2014) + bs(LF.PressureMB, df = 3), 
           data = hurricane_logdeaths)
-m4 <- gam(log_deaths ~ s(NDAM2014, df = 7) + bs(LF.PressureMB, df = 5), 
+m4 <- gam(log_deaths ~ bs(NDAM2014) + bs(LF.PressureMB, df = 4), 
           data = hurricane_logdeaths)
-m5 <- gam(log_deaths ~ s(NDAM2014, df = 7) + bs(LF.PressureMB, df = 6), 
+m5 <- gam(log_deaths ~ bs(NDAM2014) + bs(LF.PressureMB, df = 5), 
           data = hurricane_logdeaths)
-m6 <- gam(log_deaths ~ s(NDAM2014, df = 7) + bs(LF.PressureMB, df = 7), 
+m6 <- gam(log_deaths ~ bs(NDAM2014) + bs(LF.PressureMB, df = 6), 
           data = hurricane_logdeaths)
-m7 <- gam(log_deaths ~ s(NDAM2014, df = 7) + bs(LF.PressureMB, df = 8), 
+m7 <- gam(log_deaths ~ bs(NDAM2014) + bs(LF.PressureMB, df = 7), 
           data = hurricane_logdeaths)
 
 # smoothing splines with varying df arguments (smoothing parameter)
-m8 <- gam(log_deaths ~ s(NDAM2014, df = 7) + s(LF.PressureMB, df = 3), 
+m8 <- gam(log_deaths ~ bs(NDAM2014) + s(LF.PressureMB), 
           data = hurricane_logdeaths)
-m9 <- gam(log_deaths ~ s(NDAM2014, df = 7) + s(LF.PressureMB, df = 4), 
+m9 <- gam(log_deaths ~ bs(NDAM2014) + s(LF.PressureMB, df = 4), 
           data = hurricane_logdeaths)
-m10 <- gam(log_deaths ~ s(NDAM2014, df = 7) + s(LF.PressureMB, df = 5), 
+#best 
+m10 <- gam(log_deaths ~ bs(NDAM2014) + s(LF.PressureMB, df = 5), 
            data = hurricane_logdeaths)
-m11 <- gam(log_deaths ~ s(NDAM2014, df = 7) + s(LF.PressureMB, df = 6), 
+m11 <- gam(log_deaths ~ bs(NDAM2014) + s(LF.PressureMB, df = 6), 
            data = hurricane_logdeaths)
-m12 <- gam(log_deaths ~ s(NDAM2014, df = 7) + s(LF.PressureMB, df = 7), 
+m12 <- gam(log_deaths ~ bs(NDAM2014) + s(LF.PressureMB, df = 7), 
            data = hurricane_logdeaths)
-m13 <- gam(log_deaths ~ s(NDAM2014, df = 7) + s(LF.PressureMB, df = 8), 
+m13 <- gam(log_deaths ~ bs(NDAM2014) + s(LF.PressureMB, df = 3), 
            data = hurricane_logdeaths)
 
 AIC(m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13)
@@ -503,16 +506,65 @@ AIC(m0, m1, m3, m4, m5, m6, m7)
 
 \textbf{\underline{FINAL MODEL}}
 
-```{r}
+```{r, warning= FALSE}
 
 # all other predictors increased AIC when added
 # result fits with OLS MLR, JHM
-
-final <- gam(log_deaths ~ s(NDAM2014, df = 7) + bs(LF.PressureMB, df = 6), 
+poly_gam <- gam(log_deaths ~ bs(NDAM2014) + poly(LF.PressureMB, 3), 
           data = hurricane_logdeaths)
+AIC(poly_gam)
 
-summary(final)
+#final_gam <- gam(log_deaths ~ s(NDAM2014, df = 7) + bs(LF.PressureMB, df = 6), 
+#          data = hurricane_logdeaths)
+#final_gam <- gam(log_deaths ~ bs(NDAM2014) + s(LF.PressureMB, df = 5), 
+#          data = hurricane_logdeaths)
 
+final_gam <- gam(log_deaths ~ bs(NDAM2014) + poly(LF.PressureMB, 3), 
+          data = hurricane_logdeaths)
+#summary(final_gam)
+final_gam_df <- data.frame(predict(final_gam, type="terms"))
+colnames(final_gam_df) <- c("NDAM_pred", "pressure_pred")
+
+ybar <- mean(hurricane_logdeaths$log_deaths)
+mean_adj_smooth <- predict(final_gam, type="terms") + ybar
+colnames(mean_adj_smooth) <- c("NDAM_mean_adj", "pressure_mean_adj")
+mean_adj_smooth <- cbind.data.frame(mean_adj_smooth, hurricane_logdeaths)
+
+NDAM_gam <- gam(log_deaths ~ bs(NDAM2014), data = hurricane_logdeaths)
+
+NDAM_df <- data.frame(pred_NDAM = predict(NDAM_gam, hurricane_logdeaths), 
+                      NDAM2014 = hurricane_logdeaths$NDAM2014)
+
+#pressure_gam <- gam(log_deaths ~ s(LF.PressureMB, df=5), data = hurricane_logdeaths)
+pressure_gam <- gam(log_deaths ~ poly(LF.PressureMB, 3), data = hurricane_logdeaths)
+pressure_df <- data.frame(pred_pressure = predict(pressure_gam, hurricane_logdeaths), 
+                      pressure = hurricane_logdeaths$LF.PressureMB)
+
+NDAM_plot <- ggplot(data = hurricane_logdeaths, aes(x=NDAM2014, y=log_deaths)) +
+  geom_point() +
+  geom_line(inherit.aes = FALSE, data=NDAM_df,
+            aes(x=NDAM2014, y=pred_NDAM), color = "red") +
+  geom_hline(yintercept = ybar, linetype = 2, color = "blue") +
+  geom_line(inherit.aes = FALSE, data=mean_adj_smooth,
+            aes(x=NDAM2014, y=NDAM_mean_adj), color="gold")
+
+pressure_plot <- ggplot(data = hurricane_logdeaths, aes(x=LF.PressureMB, y=log_deaths)) +
+  geom_point() +
+  geom_line(inherit.aes = FALSE, data=pressure_df,
+            aes(x=pressure, y=pred_pressure), color = "red") +
+  geom_hline(yintercept = ybar, linetype = 2, color = "blue") +
+  geom_line(inherit.aes = FALSE, data=mean_adj_smooth,
+            aes(x=LF.PressureMB, y=pressure_mean_adj), color="gold")
+
+NDAM_plot
+pressure_plot
+
+hurricane_ols <- lm(log_deaths ~ NDAM2014 + LF.PressureMB, data=hurricane_logdeaths)
+residual_plot <- ggplot(hurricane_ols) + 
+  geom_point(aes(x=.fitted, y=.resid)) +
+  labs(x = "log_deaths", y = "OLS MLR Residuals")
+
+gridExtra::grid.arrange(NDAM_plot, pressure_plot, residual_plot, ncol=2)
 ```
 
 ### Visualization
