@@ -24,6 +24,9 @@ library(dplyr)
 library(GGally)
 library(kableExtra)
 library(DAAG)
+library(Rfit)
+library(leaps)
+library(gam)
 # Load additional packages here 
 knitr::opts_chunk$set(
   tidy=FALSE,     # display code as typed
@@ -37,7 +40,7 @@ Group 2: Oliver Baldwin Edwards, Leah Johnson, Adi Arifovic
 
 ## Purpose
 
-We hope to predict the number of hurricane deaths based on variables such as maximum sustained windspeed, atmospheric pressure, and property damage from a dataset containing data on 94 named hurricanes that made landfall in the US mainland from 1950 through 2012. We would expect the number of deaths to increase as the maximum sustained windspeed and property damage increases, since it would make sense for more destructive hurricanes to also be more deadly.
+We hope to predict the log number of hurricane deaths based on variables such as maximum sustained windspeed, atmospheric pressure, and property damage from a dataset containing data on 94 named hurricanes that made landfall in the US mainland from 1950 through 2012. We would expect the number of deaths to increase as the maximum sustained windspeed and property damage increases, since it would make sense for more destructive hurricanes to also be more deadly.
 
 ## Data
 ### Source
@@ -46,7 +49,7 @@ We plan to use the dataset "hurricNamed" from the "DAAG" R package containing da
 
 ### Response Variables 
 
-Our response variable is the number of deaths that occurred due to a hurricane. The units are number of human deaths. We observe that the range of deaths are from 0 to 1836. 
+Our response variable is the log number of deaths that occurred due to a hurricane. The units are number of human deaths. We observe that the range of deaths are from 0 to 1836. 
 
 ### Explanatory Variables
 
@@ -61,7 +64,7 @@ The explanatory variables we will examine are LF.WindsMPH, LF.PressureMB, LF.tim
 \item deaths describes the number of human deaths the hurricane caused
 \end{enumerate}
 
-```{r}
+```{r, include=FALSE}
 # load in full dataset
 full_hurricane_df <- hurricNamed
 glimpse(full_hurricane_df)
@@ -77,74 +80,55 @@ hurricane_death_outlier <- hurricane_numeric %>%
 # applying a log transformation to deaths
 hurricane_logdeaths <- hurricane_numeric %>% 
   mutate(log_deaths = ifelse(deaths == 0, 0, log(deaths))) %>% 
+  mutate(NDAM2014 = log(NDAM2014)) %>% 
+  mutate(BaseDam2014 = log(BaseDam2014)) %>% 
   select(-deaths)
 ```
 
 ## Exploratory Data Analysis
 
-GGpairs calls
-```{r}
-ggpairs(hurricane_numeric)
-```
-talk about ggpairs here and how deaths looks bad
+We first look at kernel density estimates of our predictors, and find that adding a `log()` transformation to `deaths`, `NDAM2014`, and `BaseDam2014` give us more normal kernel density estimates and minimize the effects of the outliers. This allows us to fit linear regression models (OLS and JHM) to the data.
 
-now we try log transformation on deaths:
-```{r}
-ggpairs(hurricane_logdeaths)
-```
-talk about above ggpairs calls here
-
-
-
-
-## correlation test?
-one of the following tests / corresponding CI 
-ADI
-binomial test
-fisher's sign test
-wilcoxon signed rank test
-permutation/randomization test
-kendalls tau or spearman's correlation test ADI
-
-
-## Kolmogorov Smirnov Test
-kolmogorov smirnov test (with empirical CDF(s) plotted) LEAH
-
-## Kernel Density Estimation
-kernel density estimation (not smoothing related) LEAH
-
-## OLS multiple linear regression
-OLS multiple linear regression (for comparison purposes) OLIVER
-```{r}
-# different models to predict log deaths
-pressure_windspeed <- msummary(lm(log_deaths ~ LF.PressureMB + LF.WindsMPH, 
-                                  data = hurricane_logdeaths)) ;pressure_windspeed
-
-pressure_ndam <- msummary(lm(log_deaths ~ LF.PressureMB + NDAM2014, 
-                                  data = hurricane_logdeaths)) ;pressure_ndam
-
-pressure_basedam <- msummary(lm(log_deaths ~ LF.PressureMB + BaseDam2014, 
-                                  data = hurricane_logdeaths)) ;pressure_basedam
+```{r, include=FALSE}
+ggpairs(hurricane_numeric) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
-## JHM Multiple Regression
-rfit
-JHM multiple regression OLIVER
+We proceed and investigate the resulting GGPairs calls on our dataset with the applied log transformations. A few of the resulting KDE's can be seen below:
 
-## Generalized Additive Model
-generalized additive model (which will require you attempting a variety of smoothers) ADI
-
-## Results
-table of aggregated results and discussion of findings
-
-## Limitations
-only data from US, small number of observations, small number of predictors for deaths
-
-Potential shortcomings of the dataset include limited data on weather-related variables for each hurricane, as it only contains maximum sustained windspeed, atmospheric pressure at landfall, and number of landfalls. Additionally, the "NDAM2014" column contains data on hurricane damage had the hurricane appeared in 2014 and it is unclear how these estimates were calculated (also no units are given on these observations). 
-
-## Conclusion
+```{r, include=FALSE}
+ggpairs(hurricane_logdeaths) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
 
 
+## Correlation Tests
+
+We now proceed and run a few correlation tests to investigate the potential for positive associations between different predictors and our response variable. Here we use Kendall's $\tau$ 
+
+Put a sentence explaining that we want kendalls over spearmans since more robust
+setup hypothesis test for posstivie association $\tau >0$ 
+```{r}
+# associated
+cor.test(x=hurricane_logdeaths$NDAM2014, y=hurricane_logdeaths$log_deaths, method="kendall")
+
+cor.test(x=hurricane_logdeaths$LF.times, y=hurricane_logdeaths$log_deaths, method="kendall")
+
+cor.test(x=hurricane_logdeaths$LF.PressureMB, y=hurricane_logdeaths$log_deaths, method="kendall")
+
+
+cor(x=hurricane_logdeaths$NDAM2014, y=hurricane_logdeaths$log_deaths, method="kendall")
+```
+
+
+
+## OLS 
+
+## Checking Assumption
+
+### KS Test 
+
+## JHM 
 
 
 

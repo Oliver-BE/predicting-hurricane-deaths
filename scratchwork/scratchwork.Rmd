@@ -104,13 +104,6 @@ talk about above ggpairs calls here
 
 
 ## correlation test?
-one of the following tests / corresponding CI 
-ADI
-binomial test
-fisher's sign test
-wilcoxon signed rank test
-permutation/randomization test
-kendalls tau or spearman's correlation test ADI
 
 Put a sentence explaining that we want kendalls over spearmans since more robust
 setup hypothesis test for posstivie association $\tau >0$
@@ -166,7 +159,7 @@ ks.test(x = resid(MLR), y = "pnorm", alternative = "two.sided")
 
 \textbf{\underline{Decision:}}
 
-We have a $p-$value of $0.1424 > 0.05$, so we fail to reject the null hypothesis at our significance level. 
+We have a $p-$value of $0.779 > 0.05$, so we fail to reject the null hypothesis at our significance level. 
 
 \textbf{\underline{Conclusion:}}
 
@@ -567,12 +560,6 @@ residual_plot <- ggplot(hurricane_ols) +
 gridExtra::grid.arrange(NDAM_plot, pressure_plot, residual_plot, ncol=2)
 ```
 
-### Visualization
-
-```{r}
-
-
-```
 
 
 
