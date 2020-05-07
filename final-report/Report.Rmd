@@ -47,7 +47,7 @@ We hope to predict the log number of hurricane deaths based on variables such as
 
 We plan to use the dataset "hurricNamed" from the "DAAG" R package containing data on 94 named hurricanes that made landfall in the US mainland from 1950 through 2012. It contains information on the number of deaths, the name of the hurricane, the year of the hurricane, the damage caused by the hurricane, etc. The data is sourced from multiple places and was used in a research paper claiming that hurricanes with female names did more human damage (after adjusting for the severity of the storm) than those with male names. Therefore, the data seems fairly reliable.
 
-### Response Variables 
+### Response Variable
 
 Our response variable is the log number of deaths that occurred due to a hurricane. The units are number of human deaths. We observe that the range of deaths are from 0 to 1836. 
 
@@ -86,49 +86,327 @@ hurricane_logdeaths <- hurricane_numeric %>%
 ```
 
 ## Exploratory Data Analysis
-
-We first look at kernel density estimates of our predictors, and find that adding a `log()` transformation to `deaths`, `NDAM2014`, and `BaseDam2014` give us more normal kernel density estimates and minimize the effects of the outliers. This allows us to fit linear regression models (OLS and JHM) to the data.
-
+### Kernel Density Estimates
 ```{r, include=FALSE}
 ggpairs(hurricane_numeric) +
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
-
-We proceed and investigate the resulting GGPairs calls on our dataset with the applied log transformations. A few of the resulting KDE's can be seen below:
-
 ```{r, include=FALSE}
 ggpairs(hurricane_logdeaths) +
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
+The researchers first looked at kernel density estimates of our predictors, and found that  `deaths`, `NDAM2014`, and `BaseDam2014` had very non-normal/skewed kernel density estimates. The researchers found that adding a `log()` transformation to `deaths`, `NDAM2014`, and `BaseDam2014` resulted in more normal kernel density estimates and minimized the effects of the outliers. (The application of a log transformation allows the researchers to fit linear regression models (OLS and JHM) to the data.) A few of the afforementioned KDEs can be seen below:
 
-## Correlation Tests
+```{r, fig.height = 8, warning = FALSE, echo=FALSE, include=FALSE}
 
-We now proceed and run a few correlation tests to investigate the potential for positive associations between different predictors and our response variable. Here we use Kendall's $\tau$ 
+i <- 1
+plots <- list()
+for(k in c("gaussian", "epanechnikov", "rectangular", "triangular")){
+  for(bandwidth in c("nrd0", "SJ", "ucv", "bcv")){
+    plots[[i]] <- ggplot(data = hurricane_logdeaths, 
+                         aes(x = hurricane_logdeaths$log_deaths)) +
+                    geom_density(bw = bandwidth, kernel = k, size = 0.3, 
+                                 color = "blue") +
+                    ggtitle(paste0(k, bandwidth)) +
+                    xlab("log_deaths")
+    i <- i + 1
+  }
+}
 
-Put a sentence explaining that we want kendalls over spearmans since more robust
-setup hypothesis test for posstivie association $\tau >0$ 
-```{r}
-# associated
-cor.test(x=hurricane_logdeaths$NDAM2014, y=hurricane_logdeaths$log_deaths, method="kendall")
+cowplot::plot_grid(plotlist = plots, nrow = 4)
 
-cor.test(x=hurricane_logdeaths$LF.times, y=hurricane_logdeaths$log_deaths, method="kendall")
-
-cor.test(x=hurricane_logdeaths$LF.PressureMB, y=hurricane_logdeaths$log_deaths, method="kendall")
-
-
-cor(x=hurricane_logdeaths$NDAM2014, y=hurricane_logdeaths$log_deaths, method="kendall")
 ```
 
+For `log_deaths`, the rectangular kernel overfits and the bandwidth selected by UCV is similarly unsuitable. The gaussian kernel looks appears to be oversmoothing. The triangular and epanechnikov kernels are similar, but the researchers decided to go with th epanechnikov kernel with bandwidth selected using BCV. The KDE looks fairly reasonable overall, and epanechnikov is generally a good choice of kernel. 
+
+### Correlation Tests
+
+The researchers proceeded to run correlation tests to investigate the potential for positive associations between different predictors and our response variable. Here we use Kendall's $\tau$ as it is robust against outliers. The researchers ran correlation tests with Kendall's $\tau$ at a significance level $\alpha=0.05$ to test the following hypotheses: the null hypothesis of no association (independence) $H_0: \tau \leq 0$ and the alternative hypothesis of positive association $H_A: \tau > 0$. (They also tested for negative associations with the set of hypotheses $H_0: \tau \geq 0$ and $H_A: \tau < 0$.)
+
+They found that log_NDAM2014, log_BaseDam2014, LF.times, and LF.WindsMPH were all significantly positively associated with log_deaths. The researchers also found that LF.PressureMB was significantly negatively associated with log_deaths. These aggegated results can be found in the table below: *(STILL NEED TO ADD THIS TABLE)*
+
+```{r, include=FALSE}
+# associated
+cor.test(x=hurricane_logdeaths$NDAM2014, y=hurricane_logdeaths$log_deaths,
+         method="kendall", alternative="greater")
+
+cor.test(x=hurricane_logdeaths$LF.times, y=hurricane_logdeaths$log_deaths, method="kendall", alternative="greater")
+
+cor.test(x=hurricane_logdeaths$LF.PressureMB, y=hurricane_logdeaths$log_deaths, method="kendall", alternative="greater")
+
+cor.test(x=hurricane_logdeaths$LF.PressureMB, y=hurricane_logdeaths$log_deaths, method="kendall", alternative="less")
+
+cor.test(x=hurricane_logdeaths$LF.WindsMPH, y=hurricane_logdeaths$log_deaths, method="kendall", alternative="greater")
+
+cor.test(x=hurricane_logdeaths$BaseDam2014, y=hurricane_logdeaths$log_deaths, method="kendall", alternative="greater")
+```
+
+## Model Fitting 
+### OLS
+The researchers next proceeded to fit models to the data, beginning with ordinary least squares regression. *still need to list assumptions here for OLS?* The researchers found that the best OLS model was the model predicting log_deaths with simply log_NDAM2014. *Note that the change of log(BaseDam2014) has meant that none of our two predictor models are significant*
+
+```{r, include=FALSE}
+test <- regsubsets(log_deaths ~ ., data=hurricane_logdeaths, nbest=3) ;summary(test)
+
+best_1pred <-  lm(log_deaths ~  NDAM2014, 
+                            data = hurricane_logdeaths) ;msummary(best_1pred)
+
+best_2pred <-  lm(log_deaths ~  NDAM2014 + BaseDam2014, 
+                            data = hurricane_logdeaths) ;msummary(best_2pred)
+
+secondbest_2pred <- lm(log_deaths ~  NDAM2014 + LF.PressureMB, 
+                            data = hurricane_logdeaths) ;msummary(secondbest_2pred)
+
+# so stick with 1 predictor model
+anova(best_1pred, best_2pred)
+
+  
+best_3pred <-  lm(log_deaths ~  NDAM2014 + LF.PressureMB + BaseDam2014,
+                            data = hurricane_logdeaths) ;msummary(best_3pred)
+
+secondbest_3pred <- lm(log_deaths ~  NDAM2014 + LF.PressureMB + LF.WindsMPH, 
+                            data = hurricane_logdeaths) ;msummary(secondbest_3pred)
+
+# so stick with 2 predictor model
+anova(secondbest_2pred, secondbest_3pred)
+
+best_4pred <-  msummary(lm(log_deaths ~  NDAM2014 + LF.PressureMB + LF.WindsMPH
+                           + BaseDam2014, data = hurricane_logdeaths)) ;best_4pred
+
+full_model <- msummary(lm(log_deaths ~  NDAM2014 + LF.PressureMB + LF.WindsMPH
+                           + BaseDam2014 + LF.times,
+                          data = hurricane_logdeaths)) ;full_model
+```
+
+```{r, include=FALSE}
+# best OLS model
+best_ols <-  lm(log_deaths ~  NDAM2014, 
+                            data = hurricane_logdeaths) ;msummary(best_ols)
+
+ols_aic <- AIC(best_ols) ;ols_aic
+```
+
+### Checking OLS Assumptions
+
+*note we still need to plot the empirical CDFs here*
+
+The researcher's checked the assumption of normally distributed residuals for our above selected linear regression model. To do so, the researchers performed a Kolmogrov Smirnov test using  a significance level $\alpha = 0.05$: 
+
+\textbf{\underline{Hypotheses:}}
+
+$H_0: F(t) = F^*(t)$
+
+$H_A: F(t) \neq F^*(t)$ for at least one $t$
+
+Where $F(t)$ refers to the estimated CDF of the distribution of residuals of our linear model, and $F^*(t)$ is the CDF of the normal distribution.
+
+\textbf{\underline{Assumptions:}}
+
+\begin{enumerate}
+
+  \item Continuous: The test assumes that the theoretical distribution is continuous, which is reasonable.
+
+  \item Independence: This is reasonable, as there's no reason to believe the log deaths for one hurricane would affect another.
+  
+  \item Parameters: This is also satisfied, we have mean = 0, and sd = 1 for the normal distribution, and neither of these is estimated. 
+
+\end{enumerate}
+
+\textbf{\underline{Test Statistic and P-value:}}
+
+```{r, warning=FALSE, include=FALSE}
+final_linear_model <- lm(log_deaths ~ NDAM2014, data = hurricane_logdeaths) 
+ks.test(x = resid(final_linear_model), y = "pnorm", alternative = "two.sided")
+```
+
+\textbf{\underline{Decision:}}
+
+We have a $p-$value of $0.7095 > 0.05$, so we fail to reject the null hypothesis at our significance level. 
+
+\textbf{\underline{Conclusion:}}
+
+We conclude that there is insufficient evidence to suggest that the estimated CDF of the distribution of the residuals in our linear model is significantly different to the CDF of the normal distribution. Thus, our assumptions for our linear model are met. 
+
+### JHM 
+
+The researchers proceeded with a non-parametric approach to model fitting by using rank-based regression. They found that the best model predicting log_deaths was again one that used only log_NDAM2014. The researchers performed drop in dispersion tests when making this decision and found that the model containing only NDAM2014 was the best model.
+
+```{r, include=FALSE}
+best_1pred_rank <-  rfit(log_deaths ~  NDAM2014, 
+                            data = hurricane_logdeaths) ;msummary(best_1pred_rank)
+
+best_2pred_rank <-  rfit(log_deaths ~  NDAM2014 + BaseDam2014, 
+                            data = hurricane_logdeaths) ;msummary(best_2pred_rank)
+
+secondbest_2pred_rank <- rfit(log_deaths ~  NDAM2014 + LF.PressureMB, 
+                      data = hurricane_logdeaths) ;msummary(secondbest_2pred_rank)
+
+# so stick with 1 predictor model
+drop.test(best_2pred_rank, best_1pred_rank)
+
+  
+best_3pred_rank <-  rfit(log_deaths ~  NDAM2014 + LF.PressureMB + BaseDam2014,
+                            data = hurricane_logdeaths) ;msummary(best_3pred_rank)
+
+secondbest_3pred_rank <- rfit(log_deaths ~  NDAM2014 + LF.PressureMB + LF.WindsMPH, 
+                            data = hurricane_logdeaths) ;msummary(secondbest_3pred_rank)
+
+# so stick with 2 predictor model 
+drop.test(secondbest_3pred_rank, secondbest_2pred_rank)
+
+best_4pred_rank <-  rfit(log_deaths ~  NDAM2014 + LF.PressureMB + LF.WindsMPH
+                           + BaseDam2014, data = hurricane_logdeaths)
+msummary(best_4pred_rank)
+
+full_model_rank <- rfit(log_deaths ~  NDAM2014 + LF.PressureMB + LF.WindsMPH
+                           + BaseDam2014 + LF.times,
+                          data = hurricane_logdeaths)
+msummary(full_model_rank)
+```
+
+```{r, include=FALSE}
+# best JHM model
+best_jhm <-  rfit(log_deaths ~  NDAM2014, 
+                            data = hurricane_logdeaths) ;msummary(best_jhm)
+
+# we can't use AIC here
+#jhm_aic <- AIC(best_jhm) ;jhm_aic
+```
+
+### GAM
+
+Lastly, the researchers attempted to fit a generalized additive model (GAM) to the data. The researchers used manual forward selection to fit the best model. With an AIC of 290.8135, the researchers first found the best way to fit log_NDAM2014 was with a b-spline with the default number of degrees of freedom. 
+
+```{r, include=FALSE}
+m0 <- gam(log_deaths ~ NDAM2014, data = hurricane_logdeaths) # NDAM2014 linear
+
+# bsplines with varying df
+# m1 is best
+m1 <- gam(log_deaths ~ bs(NDAM2014), data = hurricane_logdeaths)
+m2 <- gam(log_deaths ~ bs(NDAM2014, df = 2), data = hurricane_logdeaths)
+m3 <- gam(log_deaths ~ bs(NDAM2014, df = 3), data = hurricane_logdeaths)
+m4 <- gam(log_deaths ~ bs(NDAM2014, df = 4), data = hurricane_logdeaths)
+m5 <- gam(log_deaths ~ bs(NDAM2014, df = 5), data = hurricane_logdeaths)
+m6 <- gam(log_deaths ~ bs(NDAM2014, df = 6), data = hurricane_logdeaths)
+
+# smoothing splines with varying df arguments (smoothing parameter)
+m7 <- gam(log_deaths ~ s(NDAM2014), data = hurricane_logdeaths)
+m8 <- gam(log_deaths ~ s(NDAM2014, df = 4), data = hurricane_logdeaths)
+m9 <- gam(log_deaths ~ s(NDAM2014, df = 5), data = hurricane_logdeaths)
+m10 <- gam(log_deaths ~ s(NDAM2014, df = 6), data = hurricane_logdeaths)
+m11 <- gam(log_deaths ~ s(NDAM2014, df = 7), data = hurricane_logdeaths)
+m12 <- gam(log_deaths ~ s(NDAM2014, df = 8), data = hurricane_logdeaths)
+
+AIC(m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12)
 
 
-## OLS 
+# lowest AIC is m1 which is the basis for our next step 
+```
 
-## Checking Assumption
+The researchers next found that the best way to fit LF.PressureMB was with an s-spline with 5 degrees of freedom (while keeping the previous b-spline for log_NDAM2014).
 
-### KS Test 
+```{r, include = FALSE}
 
-## JHM 
+# LF.PressureMB absent
+m0 <- gam(log_deaths ~ bs(NDAM2014), data = hurricane_logdeaths)
+
+m1 <- gam(log_deaths ~ bs(NDAM2014) + LF.PressureMB, 
+          data = hurricane_logdeaths) # LF.PressureMB linearly included
+
+# bsplines with varying df
+m2 <- gam(log_deaths ~ bs(NDAM2014) + bs(LF.PressureMB), 
+          data = hurricane_logdeaths)
+m3 <- gam(log_deaths ~ bs(NDAM2014) + bs(LF.PressureMB, df = 3), 
+          data = hurricane_logdeaths)
+m4 <- gam(log_deaths ~ bs(NDAM2014) + bs(LF.PressureMB, df = 4), 
+          data = hurricane_logdeaths)
+m5 <- gam(log_deaths ~ bs(NDAM2014) + bs(LF.PressureMB, df = 5), 
+          data = hurricane_logdeaths)
+m6 <- gam(log_deaths ~ bs(NDAM2014) + bs(LF.PressureMB, df = 6), 
+          data = hurricane_logdeaths)
+m7 <- gam(log_deaths ~ bs(NDAM2014) + bs(LF.PressureMB, df = 7), 
+          data = hurricane_logdeaths)
+
+# smoothing splines with varying df arguments (smoothing parameter)
+m8 <- gam(log_deaths ~ bs(NDAM2014) + s(LF.PressureMB), 
+          data = hurricane_logdeaths)
+m9 <- gam(log_deaths ~ bs(NDAM2014) + s(LF.PressureMB, df = 4), 
+          data = hurricane_logdeaths)
+# m 10 is best 
+m10 <- gam(log_deaths ~ bs(NDAM2014) + s(LF.PressureMB, df = 5), 
+           data = hurricane_logdeaths)
+m11 <- gam(log_deaths ~ bs(NDAM2014) + s(LF.PressureMB, df = 6), 
+           data = hurricane_logdeaths)
+m12 <- gam(log_deaths ~ bs(NDAM2014) + s(LF.PressureMB, df = 7), 
+           data = hurricane_logdeaths)
+m13 <- gam(log_deaths ~ bs(NDAM2014) + s(LF.PressureMB, df = 3), 
+           data = hurricane_logdeaths)
+
+AIC(m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13)
+
+# min AIC is m10
+```
+
+All other predictors increased the AIC, so the researchers decided on the GAM using a b-spline with the default number of degrees of freedom for log_NDAM2014, and  an s-spline with 5 degrees of freedom LF.PressureMB. The researchers plotted this, but noticed that there was a poor fit for the LF.PressureMB scatterplot. The researchers noticed that the fit for LF.PressureMB appeared to be roughly quadratic, so attempted fitting the LF.PressureMB term with a polynomial. The final GAM can then be seen below: *note we still need to overlay the OLS  and JHM lines from above I think*
+
+
+```{r, warning= FALSE, echo=FALSE}
+# old final GAMS
+#final_gam <- gam(log_deaths ~ s(NDAM2014, df = 7) + bs(LF.PressureMB, df = 6), 
+#          data = hurricane_logdeaths)
+#final_gam <- gam(log_deaths ~ bs(NDAM2014) + s(LF.PressureMB, df = 5), 
+#          data = hurricane_logdeaths)
+
+# actual final gam
+final_gam <- gam(log_deaths ~ bs(NDAM2014) + poly(LF.PressureMB, 3), 
+          data = hurricane_logdeaths)
+#summary(final_gam)
+final_gam_df <- data.frame(predict(final_gam, type="terms"))
+colnames(final_gam_df) <- c("NDAM_pred", "pressure_pred")
+
+ybar <- mean(hurricane_logdeaths$log_deaths)
+mean_adj_smooth <- predict(final_gam, type="terms") + ybar
+colnames(mean_adj_smooth) <- c("NDAM_mean_adj", "pressure_mean_adj")
+mean_adj_smooth <- cbind.data.frame(mean_adj_smooth, hurricane_logdeaths)
+
+NDAM_gam <- gam(log_deaths ~ bs(NDAM2014), data = hurricane_logdeaths)
+
+NDAM_df <- data.frame(pred_NDAM = predict(NDAM_gam, hurricane_logdeaths), 
+                      NDAM2014 = hurricane_logdeaths$NDAM2014)
+
+#pressure_gam <- gam(log_deaths ~ s(LF.PressureMB, df=5), data = hurricane_logdeaths)
+pressure_gam <- gam(log_deaths ~ poly(LF.PressureMB, 3), data = hurricane_logdeaths)
+pressure_df <- data.frame(pred_pressure = predict(pressure_gam, hurricane_logdeaths), 
+                      pressure = hurricane_logdeaths$LF.PressureMB)
+
+NDAM_plot <- ggplot(data = hurricane_logdeaths, aes(x=NDAM2014, y=log_deaths)) +
+  geom_point() +
+  geom_line(inherit.aes = FALSE, data=NDAM_df,
+            aes(x=NDAM2014, y=pred_NDAM), color = "red") +
+  geom_hline(yintercept = ybar, linetype = 2, color = "blue") +
+  geom_line(inherit.aes = FALSE, data=mean_adj_smooth,
+            aes(x=NDAM2014, y=NDAM_mean_adj), color="gold")
+
+pressure_plot <- ggplot(data = hurricane_logdeaths, aes(x=LF.PressureMB, y=log_deaths)) +
+  geom_point() +
+  geom_line(inherit.aes = FALSE, data=pressure_df,
+            aes(x=pressure, y=pred_pressure), color = "red") +
+  geom_hline(yintercept = ybar, linetype = 2, color = "blue") +
+  geom_line(inherit.aes = FALSE, data=mean_adj_smooth,
+            aes(x=LF.PressureMB, y=pressure_mean_adj), color="gold")
+
+hurricane_ols <- lm(log_deaths ~ NDAM2014 + LF.PressureMB, data=hurricane_logdeaths)
+
+residual_plot <- ggplot(hurricane_ols) + 
+  geom_point(aes(x=.fitted, y=.resid)) +
+  labs(x = "log_deaths", y = "OLS MLR Residuals")
+
+gridExtra::grid.arrange(NDAM_plot, pressure_plot, residual_plot, ncol=2)
+```
+
+## Results
+*still need to fill this in*
 
 
 
