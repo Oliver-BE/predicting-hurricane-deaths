@@ -405,6 +405,12 @@ residual_plot <- ggplot(hurricane_ols) +
 gridExtra::grid.arrange(NDAM_plot, pressure_plot, residual_plot, ncol=2)
 ```
 
+*we need to include motivation for adding back in the Presure variable since we took it out with our OLS and JHM models*
+```{r, include=FALSE}
+AIC(best_ols)
+AIC(final_gam)
+```
+
 ## Results
 *still need to fill this in*
 
