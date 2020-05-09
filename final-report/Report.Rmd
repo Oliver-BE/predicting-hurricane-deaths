@@ -353,10 +353,12 @@ All other predictors increased the AIC, so the researchers decided on the GAM us
 
 ```{r, warning= FALSE, echo=FALSE}
 # old final GAMS
+#summary(gam(log_deaths ~ s(NDAM2014, df = 7) + bs(LF.PressureMB, df = 6), 
+#          data = hurricane_logdeaths))
+#summary(gam(log_deaths ~ bs(NDAM2014) + s(LF.PressureMB, df = 5), 
+#          data = hurricane_logdeaths))
 #final_gam <- gam(log_deaths ~ s(NDAM2014, df = 7) + bs(LF.PressureMB, df = 6), 
-#          data = hurricane_logdeaths)
-#final_gam <- gam(log_deaths ~ bs(NDAM2014) + s(LF.PressureMB, df = 5), 
-#          data = hurricane_logdeaths)
+#         data = hurricane_logdeaths)
 
 # actual final gam
 final_gam <- gam(log_deaths ~ bs(NDAM2014) + poly(LF.PressureMB, 3), 
@@ -371,12 +373,14 @@ colnames(mean_adj_smooth) <- c("NDAM_mean_adj", "pressure_mean_adj")
 mean_adj_smooth <- cbind.data.frame(mean_adj_smooth, hurricane_logdeaths)
 
 NDAM_gam <- gam(log_deaths ~ bs(NDAM2014), data = hurricane_logdeaths)
+#NDAM_gam <- gam(log_deaths ~ s(NDAM2014, df = 7), data = hurricane_logdeaths)
 
 NDAM_df <- data.frame(pred_NDAM = predict(NDAM_gam, hurricane_logdeaths), 
                       NDAM2014 = hurricane_logdeaths$NDAM2014)
 
 #pressure_gam <- gam(log_deaths ~ s(LF.PressureMB, df=5), data = hurricane_logdeaths)
 pressure_gam <- gam(log_deaths ~ poly(LF.PressureMB, 3), data = hurricane_logdeaths)
+#pressure_gam <- gam(log_deaths ~ bs(LF.PressureMB, df=6), data = hurricane_logdeaths)
 pressure_df <- data.frame(pred_pressure = predict(pressure_gam, hurricane_logdeaths), 
                       pressure = hurricane_logdeaths$LF.PressureMB)
 
@@ -398,9 +402,9 @@ pressure_plot <- ggplot(data = hurricane_logdeaths, aes(x=LF.PressureMB, y=log_d
 
 hurricane_ols <- lm(log_deaths ~ NDAM2014 + LF.PressureMB, data=hurricane_logdeaths)
 
-residual_plot <- ggplot(hurricane_ols) + 
+residual_plot <- ggplot(final_gam) + 
   geom_point(aes(x=.fitted, y=.resid)) +
-  labs(x = "log_deaths", y = "OLS MLR Residuals")
+  labs(x = "log_deaths", y = "GAM Residuals")
 
 gridExtra::grid.arrange(NDAM_plot, pressure_plot, residual_plot, ncol=2)
 ```
@@ -411,9 +415,14 @@ AIC(best_ols)
 AIC(final_gam)
 ```
 
-## Results
-*still need to fill this in*
 
+## Conclusion
+
+We found that best way to predict the log number of deaths from a US hurricane that made landfall between $1950$ and $2012$ was to use a Generalized Additive Model using a b-spline with the default degrees of freedom on log 'NDAM2014', and a cubic polynomial for 'LF.PressureMB'. This makes sense—and matches our original hypothesis—since we would intuitively expect the number of deaths to increase as the severity (in this case the amount of hurricane damage) increases. We ultimately chose the GAM as our final model over the linear and rank based models we found due to the its lower AIC, its better graphical representation, and its ability to fit to local trends (since our predictors did not appear to be globally linear).
+
+## Limitations
+
+Limitations to this report include shortcomings of the dataset, reliance on normalized metrics, and the numerous log transformations performed. While the dataset itself is comes from a reliable source, there is limited numerical data available for each hurricane. We started with a small number of total numeric predictors (six), and only two of which were related to the actual weather data of the hurricane (windspeed and pressure). We might have been able to obtain a more accurate model predicting the log number of deaths if we had access to more predictors pertaining to the severity of each hurricane, such as the radius size. Additionally, one of our predictors was normalized hurricane damage, which is necessary in order to compare hurricanes across a wide time range. However, this is a potential limitation as any inaccuracies with this metric would mean inaccuracies in our report. It is of note that this predictor was obtained from this article (add source here, link is https://ascelibrary.org/doi/abs/10.1061/(ASCE)1527-6988(2008)9:1(29)) but we still wish to note this potential limitation. Lastly, we rely heavily on the log transformations performed on numerous predictors throughout our report. A potential limitation is that we did not find the best possible log transformation for each predictor.  
 
 
 
