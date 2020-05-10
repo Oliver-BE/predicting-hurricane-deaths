@@ -264,7 +264,7 @@ We have a $p-$value of $0.7095 > 0.05$, so we fail to reject the null hypothesis
 
 We conclude that there is insufficient evidence to suggest that the estimated CDF of the distribution of the residuals in our linear model is significantly different to the CDF of the normal distribution. Thus, our assumptions for our linear model are met. 
 
-```{r}
+```{r, echo = FALSE}
 
 df <- data.frame(values = resid(best_ols))
 
