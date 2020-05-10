@@ -118,6 +118,42 @@ cowplot::plot_grid(plotlist = plots, nrow = 4)
 
 ```
 
+```{r, fig.height = 6, warning = FALSE}
+
+p1 <- ggplot(data = hurricane_logdeaths, 
+                         aes(x = hurricane_numeric$deaths)) +
+                    geom_density(bw = "bcv", kernel = "epanechnikov", size = 0.3, 
+                                 color = "royalblue") +
+                    ggtitle("Epanechnikov, BCV") +
+                    xlab("deaths")
+
+
+p2 <- ggplot(data = hurricane_logdeaths, 
+                         aes(x = hurricane_logdeaths$log_deaths)) +
+                    geom_density(bw = "bcv", kernel = "epanechnikov", size = 0.3, 
+                                 color = "royalblue") +
+                    ggtitle("Epanechnikov, BCV") +
+                    xlab("log_deaths")
+
+p3 <- ggplot(data = hurricane_logdeaths, 
+                         aes(x = hurricane_numeric$NDAM2014)) +
+                    geom_density(bw = "bcv", kernel = "epanechnikov", size = 0.3, 
+                                 color = "royalblue") +
+                    ggtitle("Epanechnikov, BCV") +
+                    xlab("NDAM2014")
+
+p4 <- ggplot(data = hurricane_logdeaths, 
+                         aes(x = hurricane_logdeaths$NDAM2014)) +
+                    geom_density(bw = "bcv", kernel = "epanechnikov", size = 0.3, 
+                                 color = "royalblue") +
+                    ggtitle("Epanechnikov, BCV") +
+                    xlab("log_NDAM2014")
+
+cowplot::plot_grid(p1, p2, nrow = 1)
+cowplot::plot_grid(p3, p4, nrow = 1)
+
+```
+
 For `log_deaths`, the rectangular kernel overfits and the bandwidth selected by UCV is similarly unsuitable. The gaussian kernel looks appears to be oversmoothing. The triangular and epanechnikov kernels are similar, but the researchers decided to go with th epanechnikov kernel with bandwidth selected using BCV. The KDE looks fairly reasonable overall, and epanechnikov is generally a good choice of kernel. 
 
 ### Correlation Tests
@@ -227,6 +263,19 @@ We have a $p-$value of $0.7095 > 0.05$, so we fail to reject the null hypothesis
 \textbf{\underline{Conclusion:}}
 
 We conclude that there is insufficient evidence to suggest that the estimated CDF of the distribution of the residuals in our linear model is significantly different to the CDF of the normal distribution. Thus, our assumptions for our linear model are met. 
+
+```{r}
+
+df <- data.frame(values = resid(best_ols))
+
+ggplot(df, aes(values)) + stat_ecdf(geom = "step", color = "royalblue") +
+  stat_function(fun = pnorm, args = list(mean = mean(df$values), 
+                                         sd = sd(df$values)), 
+                                         color = "firebrick1") +
+labs(title="Empirical Cumulative Density Function for Residuals",
+     y = "Cumulative Probability", x="Residual Values") 
+
+```
 
 ### JHM 
 
