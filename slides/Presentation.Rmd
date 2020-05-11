@@ -51,16 +51,18 @@ hurricane_logdeaths <- hurricane_numeric %>%
 
 - To predict the number of hurricane deaths based on variables such as maximum sustained windspeed, atmospheric pressure, and property damage 
 - Hypothesis:
-    - The number of deaths would *increase* with an increase in maximum sustained windspeed and property damage, as intuitively it would make sense for more destructive hurricanes to also be more deadly.
+    - The number of deaths would *increase* with an increase in maximum sustained windspeed and property damage.
+    - Intuitively it would make sense for more destructive hurricanes to also be more deadly.
 
 # Data
 
 ## Source
 
 - Dataset "hurricNamed" from the "DAAG" R package 
-    - Data on 94 named hurricanes that made landfall in the US mainland from 1950 through 2012. 
-    - Includes: number of deaths, name of the hurricane, the year of the hurricane, the damage caused by the hurricane, etc.
-- Sourced from multiple places
+    - 94 named US hurricanes from 1950 to 2012
+    - Includes: number of deaths, damage, weather statistics
+    - Cited by a research paper
+
 
 ## Variables:
 
@@ -70,16 +72,16 @@ hurricane_logdeaths <- hurricane_numeric %>%
 
 **Explanatory Variables**
 
-  - `LF.WindsMPH`: maximum sustained windspeed for each hurricane in miles per hour
-  - `LF.PressureMB`: atmospheric pressure at landfall in millibars
+  - `LF.WindsMPH`: max windspeed (mph)
+  - `LF.PressureMB`: atmospheric pressure (millibars)
   - `LF.times`: number of times the hurricane made landfall 
-  - `BaseDam2014`: property damage caused by the hurricane in millions of 2014 US dollars
-  - `NDAM2014`: amount of damage the hurricane caused had it appeared in 2014 (no units given)
+  - `BaseDam2014`: property damage (millions of 2014 US dollars)
+  - `NDAM2014`: normalized damage (no units given)
 
 # Exploratory Analysis
 
 ## Kernel Density Estimation
-- `deaths`, `NDAM2014`, and `BaseDam2014` had very skewed kernel density estimates. 
+- `deaths`, `NDAM2014`, and `BaseDam2014` had very skewed kernel density estimates.
 - Adding a `log()` transformation to `deaths`, `NDAM2014`, and `BaseDam2014` resulted in more normal kernel density estimates and minimized the effects of the outliers.
 
 ---
@@ -201,7 +203,7 @@ labs(title="Empirical Cumulative Density Function for Residuals",
 - Fit due to the issue with the equal variances condition in the OLS regression model
 - Performed drop in dispersion tests to ensure the significance of each predictor in the model.
 - Found that the best model predicting `log_deaths` was again one that used only `log_NDAM2014`. 
-    - Multiple $R^2$ = 48.07%, which was decent
+    - $R^2$ = 48.07%
 
 ## Best JHM Model
 
@@ -227,10 +229,10 @@ ggplot(data = hurricane_logdeaths, aes(x = NDAM2014, y = log_deaths)) +
 JHM <- data.frame(cbind(resid(best_jhm), fitted(best_jhm)))
 colnames(JHM) <- c("residuals", "fitted")
 
-ggplot(JHM, aes(x = residuals, y = fitted)) +
+ggplot(JHM, aes(x = fitted, y = residuals)) +
   geom_point() + 
-  labs(title = "Residuals vs Fitted Values for JHM", xlab = "Residuals", 
-       ylab = "Fitted")
+  labs(title = "Residuals vs Fitted Values for JHM", x = "log_deaths", 
+       y = "JHM Residuals")
 
 ```
 
@@ -365,7 +367,7 @@ gridExtra::grid.arrange(NDAM_plot, pressure_plot, residual_plot, ncol=2)
 
 
 ## Final GAM Model
-```{r, echo = FALSE,, fig.height= 5, warning = FALSE}
+```{r, echo = FALSE, fig.height= 4.2, warning = FALSE}
 #plot(GAMmod)
 
 # actual final gam
@@ -418,17 +420,42 @@ residual_plot <- ggplot(final_gam) +
 cowplot::plot_grid(NDAM_plot, pressure_plot, residual_plot, ncol = 2)
 ```
 
+- Applying a cubic fit to `LF.PressureMB` vastly improved the fit. 
+
 # Conclusion
+
+## Comparison of Residuals
+
+```{r, echo = FALSE, fig.height= 5, warning = FALSE}
+ols_residual_plot <-  ggplot(best_ols) + 
+  geom_point(aes(x=.fitted, y=.resid)) +
+  labs(title = "OLS Residuals vs. Fitted Values", x = "log_deaths", 
+       y = "OLS Residuals")
+
+jhm_residual_plot <- ggplot(JHM, aes(x = fitted, y = residuals)) +
+  geom_point() + 
+  labs(title = "JHM Residuals vs. Fitted Values", x = "log_deaths", 
+       y = "JHM Residuals")
+
+gam_residual_plot <- ggplot(final_gam) + 
+  geom_point(aes(x=.fitted, y=.resid)) +
+  labs(title = "GAM Residuals vs. Fitted Values", x = "log_deaths", y = "GAM Residuals")
+
+cowplot::plot_grid(ols_residual_plot, jhm_residual_plot, 
+                   gam_residual_plot, ncol = 2)
+```
+
 ## Findings
 - GAM using a b-spline on log `NDAM2014`, and a cubic polynomial for `LF.PressureMB` proved to be best predictor of log number of deaths from a US hurricane that made landfall between 1950-2012 
-    - Lowest AIC = 290.88
-    - Better graphical representation and ability to fit local trends
+    - Lowest AIC = $290.884$
+    - Better graphical representation 
+    - Ability to fit local trends
 - Matches original hypothesis as we expected the number of deaths to increase as the severity increases.
 
 ## Limitations
 - Shortcomings of the dataset, reliance on normalized metrics, and the numerous log transformations performed. 
 - Limited numerical data and predictors available for each hurricane. 
-- Any potential inaccuracies with the normalized metric for our variable, hurricane damage, would mean inaccuracies in our report.
+- Any potential inaccuracies with the normalized metric for our variable, hurricane damage (`NDAM2014`), would mean inaccuracies in our report.
 - Relied heavily on the log transformations & did not find log transformation for each variable
 
 
