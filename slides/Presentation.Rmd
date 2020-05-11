@@ -49,10 +49,15 @@ hurricane_logdeaths <- hurricane_numeric %>%
 
 ## Purpose
 
-- To predict the number of hurricane deaths based on variables such as maximum sustained windspeed, atmospheric pressure, and property damage 
+- To predict the number of hurricane deaths 
+    - Using variables such as maximum sustained wind speed, atmospheric pressure, and property damage 
 - Hypothesis:
-    - The number of deaths would *increase* with an increase in maximum sustained windspeed and property damage.
+    - The number of deaths would *increase* with an increase in maximum sustained wind speed and property damage.
     - Intuitively it would make sense for more destructive hurricanes to also be more deadly.
+
+```{r, out.width = '300px', fig.align = 'center', echo = FALSE}
+knitr::include_graphics('./Hurricane.jpg')
+```
 
 # Data
 
@@ -63,16 +68,19 @@ hurricane_logdeaths <- hurricane_numeric %>%
     - Includes: number of deaths, damage, weather statistics
     - Cited by a research paper
 
+```{r, out.width = '500px', fig.align = 'center', echo = FALSE}
+knitr::include_graphics('./Article.png')
+```
 
 ## Variables:
 
 **Response Variable**
 
-  - `deaths` describes the number of human deaths that occured due to each hurricane (ranging from 0 to 1846). 
+  - `deaths` describes the number of human deaths that occurred due to each hurricane (ranging from 0 to 1846). 
 
 **Explanatory Variables**
 
-  - `LF.WindsMPH`: max windspeed (mph)
+  - `LF.WindsMPH`: max wind speed (mph)
   - `LF.PressureMB`: atmospheric pressure (millibars)
   - `LF.times`: number of times the hurricane made landfall 
   - `BaseDam2014`: property damage (millions of 2014 US dollars)
@@ -154,7 +162,7 @@ knitr::include_graphics('./Correlation.png')
 - The best OLS model was the model predicting `log_deaths` with simply `log_NDAM2014` (normalized damage)
 - AIC = 301.11, and $R^2_{adj}$ = 50.08%.
 
-```{r, echo = FALSE, fig.height=4}
+```{r, echo = FALSE, fig.height=4, warning=FALSE, message=FALSE}
 best_ols <-  lm(log_deaths ~  NDAM2014, 
                             data = hurricane_logdeaths)
 
@@ -461,6 +469,13 @@ cowplot::plot_grid(ols_residual_plot, jhm_residual_plot,
 - Any potential inaccuracies with the normalized metric for our variable, hurricane damage (`NDAM2014`), would mean inaccuracies in our report.
 - Relied heavily on the log transformations & did not find log transformation for each variable
 
+
+## References
+
+- https://www.rdocumentation.org/packages/DAAG/versions/1.24
+- https://www.pnas.org/content/111/24/8782#ref-28
+- https://ascelibrary.org/doi/abs/10.1061/(ASCE)1527-6988(2008)9:1(29) 
+- https://www.rhinobldg.com/understanding-barometric-pressure-in-hurricanes/
 
 # Questions?
 
