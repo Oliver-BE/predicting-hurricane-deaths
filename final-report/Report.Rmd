@@ -397,8 +397,63 @@ AIC(m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13)
 # min AIC is m10
 ```
 
-All other predictors increased the AIC, so the researchers decided on the GAM using a b-spline with the default number of degrees of freedom for log_NDAM2014, and  an s-spline with 5 degrees of freedom LF.PressureMB. The researchers plotted this, but noticed that there was a poor fit for the LF.PressureMB scatterplot. The researchers noticed that the fit for LF.PressureMB appeared to be roughly quadratic, so attempted fitting the LF.PressureMB term with a polynomial. The final GAM can then be seen below: *note we still need to overlay the OLS  and JHM lines from above I think*
+All other predictors increased the AIC, so the researchers decided on the GAM using a b-spline with the default number of degrees of freedom for log_NDAM2014, and an s-spline with 5 degrees of freedom LF.PressureMB. The researchers plotted this, but noticed that there was a poor fit for the LF.PressureMB scatterplot:
 
+```{r, warning= FALSE, echo=FALSE}
+# old final GAMS
+#summary(gam(log_deaths ~ s(NDAM2014, df = 7) + bs(LF.PressureMB, df = 6), 
+#          data = hurricane_logdeaths))
+
+# actual final gam
+final_gam <- gam(log_deaths ~ bs(NDAM2014) + s(LF.PressureMB, df = 5), 
+          data = hurricane_logdeaths)
+#summary(final_gam)
+final_gam_df <- data.frame(predict(final_gam, type="terms"))
+colnames(final_gam_df) <- c("NDAM_pred", "pressure_pred")
+
+ybar <- mean(hurricane_logdeaths$log_deaths)
+mean_adj_smooth <- predict(final_gam, type="terms") + ybar
+colnames(mean_adj_smooth) <- c("NDAM_mean_adj", "pressure_mean_adj")
+mean_adj_smooth <- cbind.data.frame(mean_adj_smooth, hurricane_logdeaths)
+
+NDAM_gam <- gam(log_deaths ~ bs(NDAM2014), data = hurricane_logdeaths)
+#NDAM_gam <- gam(log_deaths ~ s(NDAM2014, df = 7), data = hurricane_logdeaths)
+
+NDAM_df <- data.frame(pred_NDAM = predict(NDAM_gam, hurricane_logdeaths), 
+                      NDAM2014 = hurricane_logdeaths$NDAM2014)
+
+pressure_gam <- gam(log_deaths ~ s(LF.PressureMB, df=5), data = hurricane_logdeaths)
+#pressure_gam <- gam(log_deaths ~ poly(LF.PressureMB, 3), data = hurricane_logdeaths)
+#pressure_gam <- gam(log_deaths ~ bs(LF.PressureMB, df=6), data = hurricane_logdeaths)
+pressure_df <- data.frame(pred_pressure = predict(pressure_gam, hurricane_logdeaths), 
+                      pressure = hurricane_logdeaths$LF.PressureMB)
+
+NDAM_plot <- ggplot(data = hurricane_logdeaths, aes(x=NDAM2014, y=log_deaths)) +
+  geom_point() +
+  geom_line(inherit.aes = FALSE, data=NDAM_df,
+            aes(x=NDAM2014, y=pred_NDAM), color = "red") +
+  geom_hline(yintercept = ybar, linetype = 2, color = "blue") +
+  geom_line(inherit.aes = FALSE, data=mean_adj_smooth,
+            aes(x=NDAM2014, y=NDAM_mean_adj), color="gold")
+
+pressure_plot <- ggplot(data = hurricane_logdeaths, aes(x=LF.PressureMB, y=log_deaths)) +
+  geom_point() +
+  geom_line(inherit.aes = FALSE, data=pressure_df,
+            aes(x=pressure, y=pred_pressure), color = "red") +
+  geom_hline(yintercept = ybar, linetype = 2, color = "blue") +
+  geom_line(inherit.aes = FALSE, data=mean_adj_smooth,
+            aes(x=LF.PressureMB, y=pressure_mean_adj), color="gold")
+
+hurricane_ols <- lm(log_deaths ~ NDAM2014 + LF.PressureMB, data=hurricane_logdeaths)
+
+residual_plot <- ggplot(final_gam) + 
+  geom_point(aes(x=.fitted, y=.resid)) +
+  labs(x = "log_deaths", y = "GAM Residuals")
+
+gridExtra::grid.arrange(NDAM_plot, pressure_plot, residual_plot, ncol=2)
+```
+
+The researchers noticed that the fit for LF.PressureMB appeared to be roughly quadratic, so attempted fitting the LF.PressureMB term with a polynomial. The final GAM can then be seen below: 
 
 ```{r, warning= FALSE, echo=FALSE}
 # old final GAMS
