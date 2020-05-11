@@ -76,7 +76,7 @@ hurricane_logdeaths <- hurricane_numeric %>%
   - `LF.PressureMB`: atmospheric pressure (millibars)
   - `LF.times`: number of times the hurricane made landfall 
   - `BaseDam2014`: property damage (millions of 2014 US dollars)
-  - `NDAM2014`: normalized damage (no units given)
+  - `NDAM2014`: normalized damage (millions of 2014 US dollars)
 
 # Exploratory Analysis
 
@@ -125,7 +125,7 @@ cowplot::plot_grid(p1, p2, p3, p4, nrow = 2)
 ```
 
 
-
+# Model Fitting
 
 ## Correlation Tests
 - We use Kendall's $\tau$ at a significance level $\alpha=0.05$
@@ -141,6 +141,7 @@ cowplot::plot_grid(p1, p2, p3, p4, nrow = 2)
 knitr::include_graphics('./Correlation.png')
 ```
 
+# Model Fitting
 
 ## Ordinary Least Squares Regression
 - Carried out best subsets selection method and series of nested F tests
@@ -305,7 +306,7 @@ AIC(m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13)
 - Used manual forward selection to fit the best model. 
 - The best way to fit `log_NDAM2014` was with a b-spline. 
 - The best way to fit `LF.PressureMB` was with an s-spline (while keeping the previous b-spline for `log_NDAM2014`).
-    - $AIC = 290.8135$
+    - $AIC = 288.015$
 
 ## Additional Changes to the GAM
 
@@ -341,18 +342,19 @@ pressure_df <- data.frame(pred_pressure = predict(pressure_gam, hurricane_logdea
 NDAM_plot <- ggplot(data = hurricane_logdeaths, aes(x=NDAM2014, y=log_deaths)) +
   geom_point() +
   geom_line(inherit.aes = FALSE, data=NDAM_df,
-            aes(x=NDAM2014, y=pred_NDAM), color = "red") +
+            aes(x=NDAM2014, y=pred_NDAM), color = "red", size=1.25) +
   geom_hline(yintercept = ybar, linetype = 2, color = "blue") +
   geom_line(inherit.aes = FALSE, data=mean_adj_smooth,
-            aes(x=NDAM2014, y=NDAM_mean_adj), color="gold")
+            aes(x=NDAM2014, y=NDAM_mean_adj), color="gold", size=1.25)
 
 pressure_plot <- ggplot(data = hurricane_logdeaths, aes(x=LF.PressureMB, y=log_deaths)) +
   geom_point() +
   geom_line(inherit.aes = FALSE, data=pressure_df,
-            aes(x=pressure, y=pred_pressure), color = "red") +
+            aes(x=pressure, y=pred_pressure), color = "red", size=1.25) +
   geom_hline(yintercept = ybar, linetype = 2, color = "blue") +
   geom_line(inherit.aes = FALSE, data=mean_adj_smooth,
-            aes(x=LF.PressureMB, y=pressure_mean_adj), color="gold")
+            aes(x=LF.PressureMB, y=pressure_mean_adj), color="gold",
+            size=1.25)
 
 hurricane_ols <- lm(log_deaths ~ NDAM2014 + LF.PressureMB, data=hurricane_logdeaths)
 
@@ -363,7 +365,7 @@ residual_plot <- ggplot(final_gam) +
 gridExtra::grid.arrange(NDAM_plot, pressure_plot, residual_plot, ncol=2)
 ```
 
-- After plotting, the `LF.PressureMB` scatterplot displayed a poor fit. 
+- After plotting, the `LF.PressureMB` scatterplot displayed a poor fit. ($AIC=288.015$)
 
 
 ## Final GAM Model
@@ -398,18 +400,19 @@ pressure_df <- data.frame(pred_pressure = predict(pressure_gam, hurricane_logdea
 NDAM_plot <- ggplot(data = hurricane_logdeaths, aes(x=NDAM2014, y=log_deaths)) +
   geom_point() +
   geom_line(inherit.aes = FALSE, data=NDAM_df,
-            aes(x=NDAM2014, y=pred_NDAM), color = "red") +
+            aes(x=NDAM2014, y=pred_NDAM), color = "red", size=1.25) +
   geom_hline(yintercept = ybar, linetype = 2, color = "blue") +
   geom_line(inherit.aes = FALSE, data=mean_adj_smooth,
-            aes(x=NDAM2014, y=NDAM_mean_adj), color="gold")
+            aes(x=NDAM2014, y=NDAM_mean_adj), color="gold", size=1.25)
 
 pressure_plot <- ggplot(data = hurricane_logdeaths, aes(x=LF.PressureMB, y=log_deaths)) +
   geom_point() +
   geom_line(inherit.aes = FALSE, data=pressure_df,
-            aes(x=pressure, y=pred_pressure), color = "red") +
+            aes(x=pressure, y=pred_pressure), color = "red", size=1.25) +
   geom_hline(yintercept = ybar, linetype = 2, color = "blue") +
   geom_line(inherit.aes = FALSE, data=mean_adj_smooth,
-            aes(x=LF.PressureMB, y=pressure_mean_adj), color="gold")
+            aes(x=LF.PressureMB, y=pressure_mean_adj), color="gold", 
+            size=1.25 )
 
 hurricane_ols <- lm(log_deaths ~ NDAM2014 + LF.PressureMB, data=hurricane_logdeaths)
 
@@ -420,7 +423,7 @@ residual_plot <- ggplot(final_gam) +
 cowplot::plot_grid(NDAM_plot, pressure_plot, residual_plot, ncol = 2)
 ```
 
-- Applying a cubic fit to `LF.PressureMB` vastly improved the fit. 
+- Applying a cubic fit to `LF.PressureMB` vastly improved the fit. ($AIC=290.884$)
 
 # Conclusion
 
