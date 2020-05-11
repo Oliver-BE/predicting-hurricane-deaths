@@ -303,7 +303,7 @@ AIC(m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13)
 ## Fitting log_NDAM2014 & LF.PressureMB to the GAM
 - GAM used to look for possible trends and relationships that were missed by other models primarily due to restrictions by linearity.
 - Used manual forward selection to fit the best model. 
-- The researchers first found the best way to fit `log_NDAM2014` was with a b-spline. 
+- The best way to fit `log_NDAM2014` was with a b-spline. 
 - The best way to fit `LF.PressureMB` was with an s-spline (while keeping the previous b-spline for `log_NDAM2014`).
     - $AIC = 290.8135$
 
