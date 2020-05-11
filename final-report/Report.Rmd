@@ -407,7 +407,7 @@ All other predictors increased the AIC, so the researchers decided on the GAM us
 # actual final gam
 final_gam <- gam(log_deaths ~ bs(NDAM2014) + s(LF.PressureMB, df = 5), 
           data = hurricane_logdeaths)
-#summary(final_gam)
+# summary(final_gam)
 final_gam_df <- data.frame(predict(final_gam, type="terms"))
 colnames(final_gam_df) <- c("NDAM_pred", "pressure_pred")
 
