@@ -143,11 +143,6 @@ hurricane_logdeaths <- hurricane_numeric %>%
   select(-deaths)
 ```
 
-```{r, include=FALSE}
-#fit_final = rbind(fit_ols(best_ols), fit_jhm(best_jhm), fit_gam(final_gam)) 
-#rownames(fit_final) = c("OLS", "JHM", "GAM") 
-#kable(round(fit_final, 4)) %>% kable_styling(position = "center")
-```
 
 ```{r, include=FALSE}
 #out10 = cv_rmc(dat = hurricane_logdeaths, ols_mod = best_ols, 
@@ -431,15 +426,15 @@ AIC(m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13)
 #summary(gam(log_deaths ~ s(NDAM2014, df = 7) + bs(LF.PressureMB, df = 6), 
 #          data = hurricane_logdeaths))
 
-# actual final gam
-final_gam <- gam(log_deaths ~ bs(NDAM2014) + s(LF.PressureMB, df = 5), 
+# first gam
+first_gam <- gam(log_deaths ~ bs(NDAM2014) + s(LF.PressureMB, df = 5), 
           data = hurricane_logdeaths)
 # summary(final_gam)
-final_gam_df <- data.frame(predict(final_gam, type="terms"))
-colnames(final_gam_df) <- c("NDAM_pred", "pressure_pred")
+first_gam_df <- data.frame(predict(first_gam, type="terms"))
+colnames(first_gam_df) <- c("NDAM_pred", "pressure_pred")
 
 ybar <- mean(hurricane_logdeaths$log_deaths)
-mean_adj_smooth <- predict(final_gam, type="terms") + ybar
+mean_adj_smooth <- predict(first_gam, type="terms") + ybar
 colnames(mean_adj_smooth) <- c("NDAM_mean_adj", "pressure_mean_adj")
 mean_adj_smooth <- cbind.data.frame(mean_adj_smooth, hurricane_logdeaths)
 
@@ -474,7 +469,7 @@ pressure_plot <- ggplot(data = hurricane_logdeaths, aes(x=LF.PressureMB, y=log_d
 
 hurricane_ols <- lm(log_deaths ~ NDAM2014 + LF.PressureMB, data=hurricane_logdeaths)
 
-residual_plot <- ggplot(final_gam) + 
+residual_plot <- ggplot(first_gam) + 
   geom_point(aes(x=.fitted, y=.resid)) +
   labs(x = "log_deaths", y = "GAM Residuals")
 
@@ -541,6 +536,15 @@ cowplot::plot_grid(NDAM_plot, pressure_plot, residual_plot, ncol = 2)
 
 - Applying a cubic fit to `LF.PressureMB` vastly improved the fit. ($AIC=290.884$)
 
+## Comparing GAMs
+
+```{r}
+anova(first_gam, final_gam)
+```
+
+- $p$-value $=0.04$
+- At $\alpha=0.05$, we choose Model 2
+
 # Conclusion
 
 ## Comparison of Residuals
@@ -564,18 +568,32 @@ cowplot::plot_grid(ols_residual_plot, jhm_residual_plot,
                    gam_residual_plot, ncol = 2)
 ```
 
+## Comparison of Fit
+
+```{r, echo=FALSE, fig.align = 'center'}
+fit_final = rbind(fit_ols(best_ols), fit_jhm(best_jhm), fit_gam(final_gam)) 
+rownames(fit_final) = c("Best OLS", "Best JHM", "Best GAM") 
+colnames(fit_final) = c("$R^2$", "$R^2_{adj}$", "$L1_{prop}$") 
+kable(round(fit_final, 4)) %>% kable_styling(position = "center")
+```
+
 ## Findings
-- GAM using a b-spline on log `NDAM2014`, and a cubic polynomial for `LF.PressureMB` proved to be best predictor of log number of deaths from a US hurricane that made landfall between 1950-2012 
-    - Lowest AIC = $290.884$
+- `gam ~ log(NDAM2014) + poly(LF.PressureMB, 3)`  
+    - Low AIC = $290.884$
     - Better graphical representation 
+    - Higher $R^2$, $R^2_{adj}$, $L1_{prop}$
     - Ability to fit local trends
-- Matches original hypothesis as we expected the number of deaths to increase as the severity increases.
+     
+     
+- Matches original hypothesis
+    - More severe hurricane = more deaths
 
 ## Limitations
-- Shortcomings of the dataset, reliance on normalized metrics, and the numerous log transformations performed. 
-- Limited numerical data and predictors available for each hurricane. 
-- Any potential inaccuracies with the normalized metric for our variable, hurricane damage (`NDAM2014`), would mean inaccuracies in our report.
-- Relied heavily on the log transformations & did not find log transformation for each variable
+
+- Limited numerical predictors 
+- Reliance on normalized hurricane damage (`NDAM2014`)
+- Reliance on log transformations 
+   - Potential for better log transformations
 
 
 ## References
