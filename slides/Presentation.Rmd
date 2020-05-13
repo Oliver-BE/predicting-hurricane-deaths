@@ -570,7 +570,7 @@ kable(round(out10,4)) %>% kable_styling(position = "center")
 ```
 
 ## Findings
-- `gam ~ log(NDAM2014) + poly(LF.PressureMB, 3)`  
+- `gam(log_deaths ~ bs(log_NDAM2014) + poly(LF.PressureMB, 3))`  
     - Low AIC = $290.884$
     - Better graphical representation 
     - Higher $R^2$, $R^2_{adj}$, $L1_{prop}$

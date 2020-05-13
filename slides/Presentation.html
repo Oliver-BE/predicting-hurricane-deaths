@@ -3569,7 +3569,7 @@ Best GAM
 </article></slide><slide class=""><hgroup><h2>Findings</h2></hgroup><article  id="findings">
 
 <ul>
-<li><code>gam ~ log(NDAM2014) + poly(LF.PressureMB, 3)</code>
+<li><code>gam(log_deaths ~ bs(log_NDAM2014) + poly(LF.PressureMB, 3))</code>
 
 <ul>
 <li>Low AIC = \(290.884\)</li>
