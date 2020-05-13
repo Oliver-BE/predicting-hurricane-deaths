@@ -66,59 +66,56 @@ fit_gen = function(y, res, df) {
 
 #My cross-validation function for this project
 cv_rmc = function(dat, ols_mod, jhm_mod, gam_mod, k = 5, m = 10){
-  #(Some) error checking
-  if(class(ols_mod) != "lm") stop('ols_mod should come from the lm() function')   
-  if(class(jhm_mod) != "rfit") stop('jhm_mod should come from the rfit() function') 
-  if(class(gam_mod)[1] != "Gam") stop('gam_mod should come from the gam() function')
-  
-  #Create model call character strings with subsetted data; uses stringr f()s
-  ols_call = paste0("lm(formula = ", ols_mod$terms[[2]], " ~ ", capture.output(ols_mod$terms[[3]]), ", data = ", "dat[-part[[i]], ])")
-  jhm_call = capture.output(jhm_mod$call)
-  dat.name = paste0("data = ", deparse(substitute(dat)))
-  jhm_call = str_replace(jhm_call, dat.name, "data = dat[-part[[i]], ]") 
-  gam_call = paste(str_trim(capture.output(gam_mod$call)), sep="", collapse="") 
-  gam_call = str_replace(gam_call, dat.name, "data = dat[-part[[i]], ]")
-
-  #Set up objects
-  ols_fit = matrix(nrow = m, ncol = 3)
-  jhm_fit = ols_fit; gam_fit = ols_fit
-  yy = jhm_mod$y
-  nn = dim(as.data.frame(dat))[1]
-  oos_lmres = vector(length = nn)
-  oos_jhres = oos_lmres; oos_gares = oos_lmres 
-  df_ols = length(ols_mod$coefficients)
-  df_jhm = length(jhm_mod$coefficients) 
-  df_gam = nn - gam_mod$df.residual
-
-  #Repeat k-fold cross-validation m times
-  for(j in 1:m) {
-    #Split data into k equal-ish parts, with random indices
-    part = split(sample(nn), 1:k)
-    #Execute model calls for all k folds; %*% is matrix multiplication
-    for(i in 1:k){
-      lm_mod = eval(parse(text = ols_call))
-      pred = predict(object = lm_mod, newdata = dat[part[[i]],]) 
-      oos_lmres[part[[i]]] = yy[part[[i]]] - pred
-      jh_mod = eval(parse(text = jhm_call))
-      subdat = select(.data = dat, colnames(jh_mod$x)[-1])[part[[i]],]
-      subdat =   cbind(1, as.matrix.data.frame(subdat))
-      pred = subdat %*% jh_mod$coefficients
-      oos_jhres[part[[i]]] = yy[part[[i]]] - pred
-      
-      ga_mod = eval(parse(text = gam_call))
-      pred = predict(object = ga_mod, newdata = dat[part[[i]],]) 
-      oos_gares[part[[i]]] = yy[part[[i]]] - pred
-    }
-    ols_fit[j, ] = fit_gen(y = yy, res = oos_lmres, df = df_ols) 
-    jhm_fit[j, ] = fit_gen(y = yy, res = oos_jhres, df = df_jhm) 
-    gam_fit[j, ] = fit_gen(y = yy, res = oos_gares, df = df_gam)
-  }
-
-  #Manage output -- average fit statistics
-  outtie = rbind(colMeans(ols_fit), colMeans(jhm_fit), colMeans(gam_fit)) 
-  colnames(outtie) = paste0("cv.", colnames(fit_ols(lm_mod))) 
-  row.names(outtie) = c("OLS", "JHM", "GAM")
-  return(outtie)
+#(Some) error checking
+if(class(ols_mod) != "lm") stop('ols_mod should come from the lm() function')
+if(class(jhm_mod) != "rfit") stop('jhm_mod should come from the rfit() function')
+if(class(gam_mod)[1] != "Gam") stop('gam_mod should come from the gam() function')
+#Create model call character strings with subsetted data; uses stringr f()s
+    dat.name = paste0("data = ", deparse(substitute(dat)))
+    ols_call = capture.output(ols_mod$call)
+    ols_call = str_replace(ols_call, dat.name, "data = dat[-part[[i]], ]")
+    jhm_call = capture.output(jhm_mod$call)
+    jhm_call = str_replace(jhm_call, dat.name, "data = dat[-part[[i]], ]")
+    gam_call = paste(str_trim(capture.output(gam_mod$call)), sep="", collapse="")
+    gam_call = str_replace(gam_call, dat.name, "data = dat[-part[[i]], ]")
+#Set up objects
+    ols_fit = matrix(nrow = m, ncol = 3)
+    jhm_fit = ols_fit; gam_fit = ols_fit
+    yy = jhm_mod$y
+    nn = dim(as.data.frame(dat))[1]
+    oos_lmres = vector(length = nn)
+    oos_jhres = oos_lmres; oos_gares = oos_lmres
+    df_ols = length(ols_mod$coefficients)
+    df_jhm = length(jhm_mod$coefficients)
+    df_gam = nn - gam_mod$df.residual
+#Repeat k-fold cross-validation m times    
+    for(j in 1:m) {
+#Split data into k equal-ish parts, with random indices
+    part = suppressWarnings(split(sample(nn), 1:k))
+#Execute model calls for all k folds; %*% is matrix multiplication
+        for(i in 1:k){
+            lm_mod = eval(parse(text = ols_call))
+            pred = predict(object = lm_mod, newdata = dat[part[[i]],])
+            oos_lmres[part[[i]]] = yy[part[[i]]] - pred
+            jh_mod = eval(parse(text = jhm_call))
+            #subdat = select(.data = dat, colnames(jh_mod$x)[-1])[part[[i]],]
+            #subdat = cbind(1, as.matrix.data.frame(subdat))
+            subdat = cbind(1, dat$NDAM2014)[part[[i]],]
+            pred = subdat %*% jh_mod$coefficients
+            oos_jhres[part[[i]]] = yy[part[[i]]] - pred
+            ga_mod = eval(parse(text = gam_call))
+            pred = predict(object = ga_mod, newdata = dat[part[[i]],])
+            oos_gares[part[[i]]] = yy[part[[i]]] - pred
+        }
+        ols_fit[j, ] = fit_gen(y = yy, res = oos_lmres, df = df_ols)
+        jhm_fit[j, ] = fit_gen(y = yy, res = oos_jhres, df = df_jhm)
+        gam_fit[j, ] = fit_gen(y = yy, res = oos_gares, df = df_gam)
+    }  
+#Manage output -- average fit statistics
+    outtie = rbind(colMeans(ols_fit), colMeans(jhm_fit), colMeans(gam_fit))
+    colnames(outtie) = paste0("cv.", colnames(fit_ols(lm_mod)))
+    row.names(outtie) = c("OLS", "JHM", "GAM")
+return(outtie)
 }
 ```
 
@@ -143,12 +140,6 @@ hurricane_logdeaths <- hurricane_numeric %>%
   select(-deaths)
 ```
 
-
-```{r, include=FALSE}
-#out10 = cv_rmc(dat = hurricane_logdeaths, ols_mod = best_ols, 
-#              jhm_mod = best_jhm, gam_mod = final_gam) 
-#kable(round(out10,4)) %>% kable_styling(position = "center")
-```
 
 ## Purpose
 
@@ -236,7 +227,6 @@ cowplot::plot_grid(p1, p2, p3, p4, nrow = 2)
 ```
 
 
-# Model Fitting
 
 ## Correlation Tests
 - We use Kendall's $\tau$ at a significance level $\alpha=0.05$
@@ -536,15 +526,6 @@ cowplot::plot_grid(NDAM_plot, pressure_plot, residual_plot, ncol = 2)
 
 - Applying a cubic fit to `LF.PressureMB` vastly improved the fit. ($AIC=290.884$)
 
-## Comparing GAMs
-
-```{r}
-anova(first_gam, final_gam)
-```
-
-- $p$-value $=0.04$
-- At $\alpha=0.05$, we choose Model 2
-
 # Conclusion
 
 ## Comparison of Residuals
@@ -575,6 +556,17 @@ fit_final = rbind(fit_ols(best_ols), fit_jhm(best_jhm), fit_gam(final_gam))
 rownames(fit_final) = c("Best OLS", "Best JHM", "Best GAM") 
 colnames(fit_final) = c("$R^2$", "$R^2_{adj}$", "$L1_{prop}$") 
 kable(round(fit_final, 4)) %>% kable_styling(position = "center")
+```
+
+## Comparison of Fit cont'd
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+set.seed(2)
+out10 = cv_rmc(dat = hurricane_logdeaths, ols_mod = best_ols, 
+              jhm_mod = best_jhm, gam_mod = final_gam) 
+rownames(out10) = c("Best OLS", "Best JHM", "Best GAM") 
+colnames(out10) = c("CV $R^2$", "CV $R^2_{adj}$", "CV $L1_{prop}$") 
+kable(round(out10,4)) %>% kable_styling(position = "center")
 ```
 
 ## Findings
